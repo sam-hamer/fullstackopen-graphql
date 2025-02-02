@@ -258,9 +258,19 @@ const resolvers = {
       }
       const newBook = new Book({ ...args, author: author._id });
       await newBook.save();
+
+      const populatedBook = await Book.findById(newBook._id).populate("author");
+
       return {
-        ...newBook.toObject(),
-        id: newBook._id,
+        ...populatedBook.toObject(),
+        id: populatedBook._id,
+        author: {
+          ...populatedBook.author.toObject(),
+          id: populatedBook.author._id,
+          bookCount: await Book.countDocuments({
+            author: populatedBook.author._id,
+          }),
+        },
       };
     },
     editAuthor: async (root, args, context) => {
