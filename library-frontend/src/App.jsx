@@ -36,6 +36,7 @@ const App = () => {
         {token ? (
           <>
             <button onClick={() => setPage("add")}>add book</button>
+            <button onClick={() => setPage("recommend")}>recommend</button>
             <button onClick={logout}>logout</button>
           </>
         ) : (
@@ -47,6 +48,7 @@ const App = () => {
       <Authors show={page === "authors"} setError={notify} />
 
       <Books show={page === "books"} />
+      <Books show={page === "recommend"} recommendedOnly={true} />
 
       <NewBook show={page === "add"} notify={notify} />
       <LoginForm
