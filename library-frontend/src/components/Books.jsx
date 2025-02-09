@@ -3,31 +3,37 @@ import { ALL_BOOKS, ME } from "../queries";
 import { useState } from "react";
 
 const Books = ({ show, recommendedOnly }) => {
-  const result = useQuery(ALL_BOOKS);
   const userResult = useQuery(ME);
   const [selectedGenre, setSelectedGenre] = useState("all");
+
+  const genre = recommendedOnly
+    ? userResult.data?.me?.favoriteGenre
+    : selectedGenre === "all"
+    ? null
+    : selectedGenre;
+
+  const result = useQuery(ALL_BOOKS, {
+    variables: { genre },
+  });
+
+  const allBooksResult = useQuery(ALL_BOOKS);
 
   if (!show) {
     return null;
   }
 
-  if (result.loading || (recommendedOnly && userResult.loading)) {
+  if (
+    result.loading ||
+    allBooksResult.loading ||
+    (recommendedOnly && userResult.loading)
+  ) {
     return <div>loading...</div>;
   }
 
   const books = result.data.allBooks;
-  const genres = [...new Set(books.flatMap((book) => book.genres))];
-
-  let booksToShow;
-  if (recommendedOnly) {
-    const favoriteGenre = userResult.data.me.favoriteGenre;
-    booksToShow = books.filter((book) => book.genres.includes(favoriteGenre));
-  } else {
-    booksToShow =
-      selectedGenre === "all"
-        ? books
-        : books.filter((book) => book.genres.includes(selectedGenre));
-  }
+  const genres = [
+    ...new Set(allBooksResult.data.allBooks.flatMap((book) => book.genres)),
+  ];
 
   return (
     <div>
@@ -50,7 +56,7 @@ const Books = ({ show, recommendedOnly }) => {
             <th>author</th>
             <th>published</th>
           </tr>
-          {booksToShow.map((a) => (
+          {books.map((a) => (
             <tr key={a.title}>
               <td>{a.title}</td>
               <td>{a.author.name}</td>
