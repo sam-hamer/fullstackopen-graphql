@@ -2,8 +2,9 @@ import { useState } from "react";
 import Authors from "./components/Authors";
 import Books from "./components/Books";
 import NewBook from "./components/NewBook";
-import { useApolloClient } from "@apollo/client";
+import { useSubscription, useApolloClient } from "@apollo/client";
 import LoginForm from "./components/LoginForm";
+import { BOOK_ADDED, ALL_BOOKS } from "./queries";
 
 const App = () => {
   const [page, setPage] = useState("authors");
@@ -27,6 +28,51 @@ const App = () => {
     localStorage.clear();
     client.resetStore();
   };
+
+  const updateCache = (addedBook) => {
+    const includedIn = (set, object) =>
+      set.map((b) => b.id).includes(object.id);
+
+    const dataInStore = client.readQuery({
+      query: ALL_BOOKS,
+      variables: { genre: null },
+    });
+
+    if (!includedIn(dataInStore.allBooks, addedBook)) {
+      client.writeQuery({
+        query: ALL_BOOKS,
+        variables: { genre: null },
+        data: {
+          allBooks: dataInStore.allBooks.concat(addedBook),
+        },
+      });
+    }
+
+    addedBook.genres.forEach((genre) => {
+      const dataInStore = client.readQuery({
+        query: ALL_BOOKS,
+        variables: { genre },
+      });
+
+      if (dataInStore && !includedIn(dataInStore.allBooks, addedBook)) {
+        client.writeQuery({
+          query: ALL_BOOKS,
+          variables: { genre },
+          data: {
+            allBooks: dataInStore.allBooks.concat(addedBook),
+          },
+        });
+      }
+    });
+  };
+
+  useSubscription(BOOK_ADDED, {
+    onData: ({ data }) => {
+      const addedBook = data.data.bookAdded;
+      notify(`${addedBook.title} added`);
+      updateCache(addedBook);
+    },
+  });
 
   return (
     <div>
